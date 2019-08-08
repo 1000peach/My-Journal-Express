@@ -55,27 +55,29 @@
                         <div class="picture_agree"><p>사진 변경</p></div>
                     </div>
                     <div class="info">
-                        <div class="id">
-                            <form class="id_box">
-                                <input class="replytext_id" type="text" placeholder="아이디"></input> 
+                        <form action="/profile" method="POST" >
+
+                            <div class="id">
+
+                                        <input name ="reid" class="replytext_id" type="text" placeholder="아이디"></input> 
+
+                            </div>
+
+                            <div class="password">
+
+                                        <input name ="repw" class="replytext_password" type="text" placeholder="비밀번호"></input> 
+
+                            </div>
+
+                            <div class="state">
+
+                                    <input  name = "remsg" class="replytext_state" type="text" placeholder="상태 메시지"></input> 
+
+                            </div>
+
+                            <div class="agree"> <button class="button" type="submit">수정</button></div>
+
                             </form>
-                        </div>
-                        <div class="name">
-                            <form class="name_box">
-                                <input class="replytext_name" type="text" placeholder="이름"></input> 
-                            </form>
-                        </div>
-                        <div class="password">
-                            <form class="password_box">
-                                <input class="replytext_password" type="text" placeholder="비밀번호"></input> 
-                            </form>
-                        </div>
-                        <div class="state">
-                            <form class="state_box">
-                                <input class="replytext_state" type="text" placeholder="상태 메시지"></input> 
-                            </form>
-                    </div>
-                        <div class="agree"><button class="agreebutton" type="button">수정</button></div>
                     </div>
                 </div>
                 <!--구독 수정-->

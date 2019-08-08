@@ -10,8 +10,8 @@ var router = express.Router();
 /* DB 정보 */
 var connection = mysql.createConnection({
   host : 'localhost',
-  user : 'nodejs',
-  password : 'nodejs', // 각자 nodejs가 사용할 user, password로 변경 후 작업
+  user : 'IMNOOK',
+  password : 'dhksthxpa12', // 각자 nodejs가 사용할 user, password로 변경 후 작업
   // port : 3306,
   database : 'project',
   charset  : 'utf8'
@@ -26,7 +26,7 @@ connection.query('USE project', function(err,rows,fields){
   if(!err)
     console.log('DB INFO_ ', rows);
   else
-    consile.log('DB ERR_', err);
+    console.log('DB ERR_', err);
 });
 
 /* --------------------------------------------------------------------------- */
@@ -495,7 +495,47 @@ function edit_msg_num() {
   }); // 쪽지 번호 갱신
 }
 /* ------------------------- 쪽지 수발신 기능 끝 ------------------------- */
-
+/* ------------------------- 상태 메세지 수정 기능 시작 ------------------------- */
+router.post('/profile', function(req, res){
+  /* 변수 선언 */
+  var user = req.session.user;
+  var auth = {
+    "id": req.body.reid,
+    "pw": req.body.repw
+  }
+  var state = req.body.remsg;
+  //Mysql 쿼리 양식
+  var sql = 'SELECT member_id FROM member WHERE member_id = ? AND member_pw = ?';
+  var params_s = [auth.id, auth.pw];
+  var params_d;
+  //검증 (세션정보의 id값으로 DB에서 비밀번호 조회)
+  connection.query(sql, params_s, function(err, rows, fields){
+     if(err) {
+      console.log(err);
+    }
+    else if (rows[0]==undefined || auth.id != user.id) {
+      res.send ('<script>alert("2차 인증이 실패했습니다. ID와 PW를 다시 확인해 주십시오!"); location.href = "/profile";</script>');
+    } //일치하는 id,pw가 없음
+    else {
+      console.log('상태 메세지 수정 시작');
+      //상태 메세지 수정 쿼리
+      sql = 'UPDATE member SET member_msg = ? WHERE member_id = ?';
+      params_d = [state,auth.id];
+      connection.query(sql, params_d, function(err, rows, fields){
+        if(err) {
+          console.log('상태 메세지 수정 실패 - ', err);
+          res.send ('<script>alert("서버측 사정으로 DB오류가 발생하였습니다. 다음에 다시 이용해 주십시오."); location.href = "/profile";</script>');
+        }
+        else {
+          res.send ('<script>alert("상태 메세지가 수정 되었습니다!"); location.href = "/profile";</script>');
+        }
+      });
+    }
+  });
+  //디버깅용 로그
+  console.log(auth);
+});
+/* ------------------------- 상태 메세지 수정 기능  끝 ------------------------- */
 /* --------------------------------------------------------------------------- */
 /* ------------------------------- 기능 구현 끝 -------------------------------- */
 /* --------------------------------------------------------------------------- */

@@ -496,7 +496,7 @@ function edit_msg_num() {
 }
 /* ------------------------- 쪽지 수발신 기능 끝 ------------------------- */
 /* ------------------------- 상태 메세지 수정 기능 시작 ------------------------- */
-router.post('/profile', function(req, res){
+router.post('/profile',  function(req, res){
   /* 변수 선언 */
   var user = req.session.user;
   var auth = {

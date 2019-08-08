@@ -4,8 +4,10 @@
 
 /* 의존관계 정보 */
 var express = require('express');
+var fs = require('fs');
 var mysql = require('mysql');
 var router = express.Router();
+var fs = require("fs-extra");
 
 /* DB 정보 */
 var connection = mysql.createConnection({
@@ -48,7 +50,7 @@ router.get('/', function(req, res) {
 router.get('/login', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.redirect('/contents');
+    res.send (go_contents(req.session.user.id));
   }
   else{
     res.render('login', { title: 'Express' });
@@ -57,7 +59,7 @@ router.get('/login', function(req, res) {
 router.get('/register', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.redirect('/contents');
+    res.send (go_contents(req.session.user.id));
   }
   else{
     res.render('register', { title: 'Express' });
@@ -66,7 +68,7 @@ router.get('/register', function(req, res) {
 router.get('/finder', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.redirect('/contents');
+    res.send (go_contents(req.session.user.id));
   }
   else{
     res.render('finder', { title: 'Express' });
@@ -74,8 +76,43 @@ router.get('/finder', function(req, res) {
 });
 
 /* GET contents pages */
-router.get('/contents', function(req, res) {
-  res.render('contents', { title: 'Express' });
+router.post('/contents', function(req, res) {
+  var visit_to = req.body.visit_to;
+  var room_num = req.body.room_num;
+  var login = {
+    "id": ""
+  }
+  if (req.session.user) {
+    login.id = req.session.user.id;
+    login.nick = req.session.user.nick;
+  }
+
+  var sql_sel = "SELECT * FROM photo WHERE member_id = ? AND room_num = ?";
+  var params = [visit_to, room_num];
+  connection.query(sql_sel, params, function(err1, rows) {
+    if (err1) {
+      console.log(err);
+    }
+    else {    
+      res.render('contents', {
+        login: login,
+        rows: rows,
+        room_num: room_num
+      });
+    }
+  });
+
+});
+
+router.get('/img/:id/:num/:name', function(req, res) {
+  var id = req.params.id;
+  var num = req.params.num;
+  var name = req.params.name;
+  fs.readFile('./uploads/'+id+'/'+num+'/'+name, function (err, data) {
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    // console.log(data);
+    res.end(data);
+  });
 });
 
 router.get('/profile', function(req, res) {
@@ -158,7 +195,7 @@ router.get('/search', function(req, res) {
 /* --------------------------------------------------------------------------- */
 
 router.post('/search', function(req, res) {
-  res.send('<script> location.href = "/contents"; </script>');
+  res.send('<script> location.href = "/search"; </script>');
 });
 
 
@@ -191,7 +228,7 @@ router.post('/login', function(req, res){
             "name" : rows[i].member_name
           }
           console.log('로그인 처리 - 세션 저장');
-          res.send ('<script>alert("로그인 되었습니다!"); location.href = "/contents";</script>');
+          res.send ('<script>alert("로그인 되었습니다!");</script>'+go_contents(req.session.user.id));
         }
       }
       //일치하는 id,pw가 없음
@@ -456,7 +493,7 @@ router.post('/message', function(req, res) {
       if (err) {console.log(err);}
       else {
         console.log('삽입 성공!');
-        res.send ('<script>alert("쪽지를 보냈습니다!"); location.href = "/search";</script>');
+        res.send ('<script>alert("쪽지를 보냈습니다!"); history.back(-1);</script>');
       } // msg_info 내용을 message table에 삽입
     });
   } // 쪽지 보내기일 경우
@@ -464,6 +501,16 @@ router.post('/message', function(req, res) {
 });
 
 /* 함수 정의 */
+
+function go_contents(login_go) {
+  var contents_st = '<form id="sample" action="/contents" method="post">'
+  +'<input style="display: none;" name="visit_to" type="text" value="'+login_go+'">'
+  +'<input style="display: none;" name="room_num" type="text" value="1">'
+  +'<input style="display: none;" type="submit" value="submit">'
+  +'<script>document.getElementById("sample").submit();</script>';
+  return contents_st;
+} // 내 갤러리 또는 방문할 회원의 갤러리 정보를 넘김
+
 function edit_msg_num() {
   var sql_udt1 = "ALTER TABLE message AUTO_INCREMENT = 1";
   connection.query(sql_udt1, function (err, rows, fields) {

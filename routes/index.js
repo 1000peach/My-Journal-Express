@@ -12,8 +12,8 @@ var fs = require("fs-extra");
 /* DB 정보 */
 var connection = mysql.createConnection({
   host : 'localhost',
-  user : 'nodejs',
-  password : 'nodejs', // 각자 nodejs가 사용할 user, password로 변경 후 작업
+  user : 'IMNOOK',
+  password : 'dhksthxpa12', // 각자 nodejs가 사용할 user, password로 변경 후 작업
   // port : 3306,
   database : 'project',
   charset  : 'utf8'
@@ -26,7 +26,7 @@ var connection = mysql.createConnection({
 connection.connect();
 connection.query('USE project', function(err,rows,fields){
   if(!err)
-    console.log('DB INFO_ ', rows);
+    console.log('DB OK_ (index)');
   else
     console.log('DB ERR_', err);
 });
@@ -45,7 +45,7 @@ connection.query('USE project', function(err,rows,fields){
 router.get('/', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.send (go_contents(req.session.user.id));
+    res.send (go_contents(req.session.user.id, 1));
   }
   else{
     res.render('main', { title: 'Express' });
@@ -56,7 +56,7 @@ router.get('/', function(req, res) {
 router.get('/login', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.send (go_contents(req.session.user.id));
+    res.send (go_contents(req.session.user.id, 1));
   }
   else{
     res.render('login', { title: 'Express' });
@@ -65,7 +65,7 @@ router.get('/login', function(req, res) {
 router.get('/register', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.send (go_contents(req.session.user.id));
+    res.send (go_contents(req.session.user.id, 1));
   }
   else{
     res.render('register', { title: 'Express' });
@@ -74,7 +74,7 @@ router.get('/register', function(req, res) {
 router.get('/finder', function(req, res) {
   if(req.session.user){
     //이미 로그인되어 있을 경우
-    res.send (go_contents(req.session.user.id));
+    res.send (go_contents(req.session.user.id, 1));
   }
   else{
     res.render('finder', { title: 'Express' });
@@ -91,6 +91,11 @@ router.get('/contents', function(req, res) {
 router.post('/contents', function(req, res) {
   var visit_to = req.body.visit_to;
   var room_num = req.body.room_num;
+  // 방문한 사람과 room number를 불러옴
+
+  if (!req.session.visit_to || req.body.move) {
+    req.session.visit_to = visit_to;
+  }
   var login = {
     "id": ""
   }
@@ -99,8 +104,9 @@ router.post('/contents', function(req, res) {
     login.nick = req.session.user.nick;
   }
 
-  var sql_sel = "SELECT * FROM photo WHERE member_id = ? AND room_num = ?";
-  var params = [visit_to, room_num];
+  var sql_sel = "SELECT *, date_format(date, '%Y-%m-%d') p_date FROM photo WHERE member_id = ? AND room_num = ? ORDER BY date";
+  var params = [req.session.visit_to, room_num];
+  console.log(params);
   connection.query(sql_sel, params, function(err1, rows) {
     if (err1) {
       console.log(err);
@@ -112,7 +118,7 @@ router.post('/contents', function(req, res) {
         room_num: room_num
       });
     }
-  });
+  }); // 방문한 사람이 등록한 사진들 불러옴 (시간 순)
 
 });
 
@@ -120,12 +126,12 @@ router.get('/img/:id/:num/:name', function(req, res) {
   var id = req.params.id;
   var num = req.params.num;
   var name = req.params.name;
+
   fs.readFile('./uploads/'+id+'/'+num+'/'+name, function (err, data) {
     res.writeHead(200, {'Content-Type': 'text/html'});
-    // console.log(data);
     res.end(data);
   });
-});
+}); // 사진을 서버 폴더에서 불러와 페이지에 넘겨줌
 
 router.get('/profile', function(req, res) {
   if(req.session.user) {
@@ -142,10 +148,22 @@ router.get('/profile', function(req, res) {
         connection.query(sql2, params2, function(err2, rows2) {
           if (err2) {
             console.log(err);
-          } else {
-            res.render('profile', {
-              rows1: rows1,
-              rows2: rows2
+          }
+          else {
+            var id = req.session.user.id;
+            var sql3 = "SELECT * FROM member WHERE member_id = ?";
+            var params3 = [id];
+            connection.query(sql3, params3, function(err3, rows0) {
+              if (err3) {
+                console.log(err);
+              }
+              else {
+                res.render('profile', {
+                  rows0: rows0,
+                  rows1: rows1,
+                  rows2: rows2
+                });
+              }
             });
           }
         });
@@ -182,9 +200,88 @@ router.get('/search', function(req, res) {
 /* -------------------------------- 기능 구현 --------------------------------- */
 /* --------------------------------------------------------------------------- */
 
+/* --------------------------- 컨텐츠 박스 이동 기능 --------------------------- */
+router.post('/editPhoto', function(req, res) {
+  var photos_x_pos = new Array();
+  var photos_y_pos = new Array();
+  var photo_name = new Array();
+  // 사진 정보를 전달 받을 배열
+
+  var visit_to = req.session.visit_to;
+  var room_num = req.body.edit_room_num;
+  
+  photo_name = req.body.photos_name.split(',');
+  photos_x_pos = req.body.photos_x_pos.split(',');
+  photos_y_pos = req.body.photos_y_pos.split(','); // 배열에 넘겨준 값 저장
+ 
+  var sql_crt = "CREATE VIEW room AS SELECT photo_name, x_pos, y_pos, width, height FROM photo WHERE member_id = ? AND room_num = ? ORDER BY date";
+  var params_crt = [visit_to, room_num];
+  connection.query(sql_crt, params_crt, function(err) {
+    if (err) {
+      console.log(err);
+    } // 날짜 순으로 사진 정보 변경 하기 위해 view 생성 
+    else {
+      for (var i = 0; i < photo_name.length; i++) {
+        var sql_udt = "UPDATE room SET x_pos = ?, y_pos = ? WHERE photo_name = ?";
+        var params_udt = [photos_x_pos[i], photos_y_pos[i], photo_name[i]];
+        connection.query(sql_udt, params_udt, function(err) {
+          if (err) {console.log(err);}
+        });
+      } // 받은 사진 정보로 변경
+      var sql_del = "DROP VIEW room";
+      connection.query(sql_del, function (err) {
+        if (err) {console.log(err);}
+        else {
+          console.log('삭제 까지 완료');
+        }
+      }); // 작업이 끝났으므로 view 삭제
+    }
+  });
+  
+  res.send ('<script>alert("변경 사항이 저장되었습니다!");</script>'+go_contents(visit_to, room_num));
+}); // 사진 정보로 변경
+
+router.post('/edit_detail_photo', function (req, res) {
+  var visit_to = req.session.visit_to;
+  var room_num = req.body.edit_room_num;
+  var photo_name = req.body.edit_photo_name;
+
+  var width = req.body.edit_photo_width;
+  var height = req.body.edit_photo_height;
+
+  if (req.body.mode==="edit") {
+    var sql_udt = "UPDATE photo SET width = ?, height = ? WHERE member_id = ? AND photo_name = ? AND room_num = ?";
+    var params_udt = [width, height, visit_to, photo_name, room_num];
+    connection.query(sql_udt, params_udt, function(err) {
+      if (err) {
+        console.log(err);
+        console.log('사진 변경 실패');
+      }
+      else {
+        console.log('변경 완료');
+        res.send ('<script>alert("변경 사항이 저장되었습니다!");</script>'+go_contents(visit_to, room_num));
+      }
+    });
+  } // 변경을 눌렀을 때 사진 크기 변경
+  else if (req.body.mode==="delete") {
+    var sql_del = "DELETE FROM photo WHERE member_id = ? AND photo_name = ? AND room_num = ?";
+    var params_del = [visit_to, photo_name, room_num];
+    connection.query(sql_del, params_del, function(err) {
+      if (err) {
+        console.log('사진 삭제 실패');
+      }
+      else {
+        console.log('삭제 완료');
+        res.send ('<script>alert("사진이 삭제되었습니다!");</script>'+go_contents(visit_to, room_num));
+      }
+    });
+  } // 삭제 눌렀을 때 사진 크기 삭제
+}); // 사진 크기 변경 및 삭제
+
 router.post('/search', function(req, res) {
   res.send('<script> location.href = "/search"; </script>');
 });
+/* ------------------------- 컨텐츠 박스 이동 기능 끝 ------------------------- */
 
 
 /* --------- 계정 관련 기능 (로그인, 로그아웃, 회원가입, 회원탈퇴 기능) --------- */
@@ -216,7 +313,7 @@ router.post('/login', function(req, res){
             "name" : rows[i].member_name
           }
           console.log('로그인 처리 - 세션 저장');
-          res.send ('<script>alert("로그인 되었습니다!");</script>'+go_contents(req.session.user.id));
+          res.send ('<script>alert("로그인 되었습니다!");</script>'+go_contents(req.session.user.id, 1));
         }
       }
       //일치하는 id,pw가 없음
@@ -254,6 +351,8 @@ router.post('/register', function(req, res){
   //Mysql 쿼리 양식
   var sql = 'INSERT INTO member (member_id, member_pw, member_name, member_nick, member_email, member_phone) VALUES(?, ?, ?, ?, ?, ?)';
   var params = [info.id,info.pw,info.name,info.nick,info.mail,info.phone];
+  var sqls = 'Select * from member'
+  var a = 0;
 
   /* 알고리즘 */
   //사용자가 입력한 회원가입 양식 검증
@@ -269,23 +368,46 @@ router.post('/register', function(req, res){
   if(!RegExp2.test(info.mail)){
     res.send ('<script>alert("이메일 양식이 올바르지 않습니다! ( example@service.com 형식으로 입력해 주십시오)"); location.href = "/register";</script>');
   }
-
   //양식에 문제 없으면 DB에 저장
-  else{
-    connection.query(sql, params, function(err, rows, fields){
-       if(err){
-        console.log(err);
-        res.send ('<script>alert("서버측 사정으로 DB오류가 발생하였습니다. 다음에 다시 이용해 주십시오."); location.href = "/register";</script>');
-      }
-      else {
-        console.log(rows.insertId);
-        res.send ('<script>alert("회원가입 되었습니다! 로그인 하여 주십시오."); location.href = "/login";</script>');
+  
+  connection.query(sqls, function(err, rowss, fields){
+    if(err){
+     console.log(err);
+   }
+   else {
+     for(var i=0; i<rowss.length; i++){
+       if(rowss[i].member_id == info.id){
+         console.log('아이디 중복');
+         res.send ('<script>alert("아이디가 중복 됩니다!"); location.href = "/register";</script>');
        }
-    });
-  }
-  //디버깅용 로그
-  console.log(info);
-});
+       if(rowss[i].member_nick == info.nick){
+        console.log('닉네임 중복');
+        res.send ('<script>alert("닉네임이 중복 됩니다!"); location.href = "/register";</script>');
+       }
+      }
+        connection.query(sql, params, function(err, rows, fields){
+           if(err){
+            console.log(err);
+            res.send ('<script>alert("서버측 사정으로 DB오류가 발생하였습니다. 다음에 다시 이용해 주십시오."); location.href = "/register";</script>');
+            return;
+          }
+          else {
+            console.log(rows.insertId);
+            fs.mkdirSync('uploads/'+info.id);
+            fs.mkdirSync('uploads/'+info.id+'/1');
+            fs.mkdirSync('uploads/'+info.id+'/2');
+            fs.mkdirSync('uploads/'+info.id+'/3');
+            console.log(info.id+' 폴더 생성');
+            res.send ('<script>alert("회원가입 되었습니다! 로그인 하여 주십시오."); location.href = "/login";</script>');
+           } // 첫 사진 등록 시 회원의 사진 폴더 생성
+        });
+      }
+      //디버깅용 로그
+      console.log(info);
+  });
+  });
+
+  //
 
 //회원탈퇴 처리 알고리즘
 router.post('/resign', function(req, res){
@@ -446,11 +568,12 @@ router.post('/move_and_remove', function(req, res) {
   var move = req.body.move;
   var remove = req.body.remove;
   var member = {
-    "r_id": req.body.r_id,
-    "r_nick": req.body.r_nick
+    "r_id": req.body.r_id
   }
-  if (move==='move') {
-    res.send('<script>location.href = "/contents";</script>');
+  if (move=='move') {
+    req.session.visit_to = member.r_id;
+    res.send (go_contents(member.r_id, 1));
+    return;
   }
   else if (remove=='remove') {
     var sql_del = 'DELETE FROM subscribe WHERE s_id = ? AND r_id = ?';
@@ -505,7 +628,7 @@ router.post('/message', function(req, res) {
       if (err) {console.log(err);}
       else {
         console.log('삽입 성공!');
-        res.send ('<script>alert("쪽지를 보냈습니다!"); history.back(-1);</script>');
+        res.send ('<script>alert("쪽지를 보냈습니다!"); location.href = "profile";</script>');
       } // msg_info 내용을 message table에 삽입
     });
   } // 쪽지 보내기일 경우
@@ -514,10 +637,10 @@ router.post('/message', function(req, res) {
 
 /* 함수 정의 */
 
-function go_contents(login_go) {
+function go_contents(login_go, r_num) {
   var contents_st = '<form id="sample" action="/contents" method="post">'
   +'<input style="display: none;" name="visit_to" type="text" value="'+login_go+'">'
-  +'<input style="display: none;" name="room_num" type="text" value="1">'
+  +'<input style="display: none;" name="room_num" type="text" value="'+r_num+'">'
   +'<input style="display: none;" type="submit" value="submit">'
   +'<script>document.getElementById("sample").submit();</script>';
   return contents_st;
@@ -547,51 +670,94 @@ function edit_msg_num() {
     }
   }); // 쪽지 번호 갱신
 }
-/* ------------------------- 쪽지 수발신 기능 끝 ------------------------- */
-/* ------------------------- 상태 메세지 수정 기능 시작 ------------------------- */
 
-  router.post('/profile',  function(req, res){  
-    /* 변수 선언 */
-    var user = req.session.user;
-    var auth = {
-      "id": req.body.reid,
-      "pw": req.body.repw
+/* ------------------------- 쪽지 수발신 기능 끝 ------------------------- */
+
+/* ------------------------- 상태 메세지 수정 기능 시작 ------------------------- */
+router.post('/personalmsg',  function(req, res){
+  /* 변수 선언 */
+  var user = req.session.user;
+  var msg = req.body.p_msg
+  var params_d = [msg,user.id];
+  var sql = 'UPDATE member SET member_msg = ? WHERE member_id = ?';
+  connection.query(sql, params_d, function(err, rows, fields){
+    if(err) {
+      console.log('상태 메세지 수정 실패 - ', err);
+      res.send ('<script>alert("서버측 사정으로 DB오류가 발생하였습니다. 다음에 다시 이용해 주십시오."); location.href = "/profile";</script>');
     }
-    var state = req.body.remsg;
-    //Mysql 쿼리 양식
-    var sql = 'SELECT member_id FROM member WHERE member_id = ? AND member_pw = ?';
-    var params_s = [auth.id, auth.pw];
-    var params_d;
-    //검증 (세션정보의 id값으로 DB에서 비밀번호 조회)
-    connection.query(sql, params_s, function(err, rows, fields){
-       if(err) {
-        console.log(err);
+    else {
+      res.send ('<script>alert("상태 메세지가 수정 되었습니다!"); location.href = "/profile";</script>');
+    }
+  });
+});
+/* ------------------------- 상태 메세지 수정 기능 끝 ------------------------- */
+
+/* ------------------------- 회원 정보 수정 기능 시작 ------------------------- */
+
+router.post('/modify',  function(req, res){  
+  /* 변수 선언 */
+  var user = req.session.user;
+  var authss = {
+    "id": req.body.modi_id,
+    "pw": req.body.modi_pw
+  }
+  //Mysql 쿼리 양식
+  var sql = 'SELECT member_id FROM member WHERE member_id = ? AND member_pw = ?';
+  var params_s = [authss.id, authss.pw];
+  //검증 (세션정보의 id값으로 DB에서 비밀번호 조회)
+  connection.query(sql, params_s, function(err, rows, fields){
+     if(err) {
+      console.log(err);
+    }
+    else if (rows[0] == undefined || authss.id != user.id) {
+      res.send ('<script>alert("2차 인증이 실패했습니다. ID와 PW를 다시 확인해 주십시오!"); location.href = "/profile";</script>');
+    } //일치하는 id,pw가 없음
+    else {
+      console.log('회원 정보 수정 시작');
+      res.send('<script>location.href = "/profile?auth=1";</script>')
+    }
+  });
+});
+
+router.post('/remodify', function(req, res){ 
+  var user = req.session.user;
+  var remodif = {
+    "pw": req.body.remodi_pw,
+    "nick": req.body.remodi_nick,
+    "email": req.body.remodi_email,
+    "phone": req.body.remodi_phone
+  }
+  //양식 검증용 정규식
+  var RegExp1 = /^[0-9]*$/;
+  var RegExp2 = /^[-A-Za-z0-9_]+[-A-Za-z0-9_.]*[@]{1}[-A-Za-z0-9_]+[-A-Za-z0-9_.]*[.]{1}[A-Za-z]{1,5}$/;
+  //사용자가 입력한 회원정보변경 양식 검증
+  if(remodif.pw==""||remodif.nick==""||remodif.email==""||remodif.phone==""){
+    res.send ('<script>alert("회원정보변경 양식의 모든 필드를 채워주셔야 합니다. 변경하지 않을 정보는 원래 정보를 입력하십시오 (보안강화 차원의 조치입니다.) 빈 칸은 허용되지 않습니다!"); location.href = "/profile";</script>');
+  }
+  if(!RegExp1.test(remodif.phone)){
+    res.send ('<script>alert("전화번호는 숫자만 입력하여 주십시오! ( - 는 생략해 주십시오.)"); location.href = "/profile";</script>');
+  }
+  if(!RegExp2.test(remodif.email)){
+    res.send ('<script>alert("이메일 양식이 올바르지 않습니다! ( example@service.com 형식으로 입력해 주십시오)"); location.href = "/profile";</script>');
+  }
+  else{
+    var sql = 'UPDATE member SET member_pw = ?, member_nick = ?, member_email = ?, member_phone = ? WHERE member_id = ?';
+    params_m = [remodif.pw, remodif.nick, remodif.email, remodif.phone, user.id];
+    connection.query(sql, params_m, function(err, rows, fields){
+      if(err) {
+        console.log('회원 정보 수정 실패 - ', err);
+        res.send ('<script>alert("서버측 사정으로 DB오류가 발생하였습니다. 다음에 다시 이용해 주십시오."); location.href = "/profile";</script>');
       }
-      else if (rows[0]==undefined || auth.id != user.id) {
-        res.send ('<script>alert("2차 인증이 실패했습니다. ID와 PW를 다시 확인해 주십시오!"); location.href = "/profile";</script>');
-      } //일치하는 id,pw가 없음
-      else {
-        console.log('상태 메세지 수정 시작');
-        //상태 메세지 수정 쿼리
-        sql = 'UPDATE member SET member_msg = ? WHERE member_id = ?';
-        params_d = [state,auth.id];
-        connection.query(sql, params_d, function(err, rows, fields){
-          if(err) {
-            console.log('상태 메세지 수정 실패 - ', err);
-            res.send ('<script>alert("서버측 사정으로 DB오류가 발생하였습니다. 다음에 다시 이용해 주십시오."); location.href = "/profile";</script>');
-          }
-          else {
-            res.send ('<script>alert("상태 메세지가 수정 되었습니다!"); location.href = "/profile";</script>');
-          }
-        });
+     else {
+        console.log('회원 정보 수정 완료');
+        req.session.user.nick = remodif.nick;
+        res.send ('<script>alert("회원 정보가 수정 되었습니다!"); location.href = "/profile";</script>');
       }
     });
-    //디버깅용 로그
-    console.log(auth);
-  });
-  
-  
-/* ------------------------- 상태 메세지 수정 기능  끝 ------------------------- */
+  }
+});
+/* ------------------------- 회원 정보 수정 기능 끝 ------------------------- */
+
 /* --------------------------------------------------------------------------- */
 /* ------------------------------- 기능 구현 끝 -------------------------------- */
 /* --------------------------------------------------------------------------- */

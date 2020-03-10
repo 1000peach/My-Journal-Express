@@ -39,7 +39,7 @@ cd my-journal
 npm install
 ```
 
-2. 생성한 애플리케이션에 프로젝트에 필요한 모듈을 설치하고, 서버에 업로드 할 사진을 저장하는 uploads 폴더를 생성합니다.
+4. 생성한 애플리케이션에 프로젝트에 필요한 모듈을 설치하고, 서버에 업로드 할 사진을 저장하는 uploads 폴더를 생성합니다.
 
 ```
 npm install --save body-parser
@@ -51,9 +51,9 @@ npm install --save multer
 mkdir uploads
 ```
 
-3. 해당 저장소를 clone 합니다. vscode로 열어 sftp.json을 이용해 서버의 애플리케이션과 연결합니다.
+5. 해당 저장소를 clone 합니다. vscode로 열어 sftp.json을 이용해 서버의 애플리케이션과 연결합니다.
 
-4. server 폴더에 db.js를 생성하고, MySQL에 connection 하기 위해 다음 형식으로 본인의 정보로 입력한 후 저장합니다.
+6. server 폴더에 db.js를 생성하고, MySQL에 connection 하기 위해 다음 형식으로 본인의 정보로 입력한 후 저장합니다.
 
 ```
 const mysql = require("mysql");
@@ -69,7 +69,7 @@ const connection = mysql.createConnection({
 module.exports = connection;
 ```
 
-5. 설치 후 애플리케이션을 ```npm start```를 통해 실행하고, AWS에서 발급받은 **인스턴스 아이피:포트번호**로 접속합니다.
+7. 설치 후 애플리케이션을 ```npm start```를 통해 실행하고, AWS에서 발급받은 **인스턴스 아이피:포트번호**로 접속합니다.
 
 ## Websites
 

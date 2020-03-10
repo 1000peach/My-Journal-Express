@@ -1,18 +1,11 @@
 var express = require('express');
 var router = express.Router();
 var multer = require("multer");
-var mysql = require('mysql');
 var path = require("path");
 var fs = require("fs-extra");
-var connection = mysql.createConnection({
-  host : 'localhost',
-  user : 'nodejs',
-  password : '00000000', // 각자 nodejs가 사용할 user, password로 변경 후 작업
-  // port : 3306,
-  database : 'project',
-  charset  : 'utf8'
-});
-connection.connect();
+
+const connection = require('../db');
+
 connection.query('USE project', function(err,rows,fields){
   if(!err)
     console.log('DB OK_ (files)');

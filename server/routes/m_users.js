@@ -5,25 +5,12 @@
 /* 의존관계 정보 */
 var express = require('express');
 var fs = require('fs');
-var mysql = require('mysql');
 var router = express.Router();
 var fs = require("fs-extra");
-
 /* DB 정보 */
-var connection = mysql.createConnection({
-  host : 'localhost',
-  user : 'nodejs',
-  password : '00000000', // 각자 nodejs가 사용할 user, password로 변경 후 작업
-  // port : 3306,
-  database : 'project',
-  charset  : 'utf8'
-});
-
-/* 세션 정보 */
-//app.js에 세션정보 등록해놔서 별도의 세션 등록은 필요없음.
+const connection = require('../db');
 
 /* mysql 접속 및 이용할 데이터베이스 설정 */
-connection.connect();
 connection.query('USE project', function(err,rows,fields){
   if(!err)
     console.log('DB OK_ (m_users)');

@@ -6,11 +6,11 @@ var cookieParser = require('cookie-parser');
 var sessionParser = require('express-session');
 var bodyParser = require('body-parser');
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
-var file = require('./routes/file');
-var m_routes = require('./routes/m_index');
-var m_users = require('./routes/m_users');
+var routes = require('./server/routes/index');
+var users = require('./server/routes/users');
+var file = require('./server/routes/file');
+var m_routes = require('./server/routes/m_index');
+var m_users = require('./server/routes/m_users');
 
 var app = express();
 
@@ -21,7 +21,11 @@ app.set('view engine', 'ejs');
 app.use(favicon());
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded());
+app.use(
+  bodyParser.urlencoded({
+    extended: true
+  })
+);
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(sessionParser({

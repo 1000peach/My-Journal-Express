@@ -4,6 +4,8 @@
 
 세종대학교 학술동아리 Open Year Round에서 1학기 동안 웹 기초를 공부한 후 완성한 프로젝트 입니다.
 
+![main](./public/images/main.png)
+
 ## Development Environment
 
 * OS : Windows 10
@@ -37,7 +39,7 @@ cd my-journal
 npm install
 ```
 
-2. 생성한 애플리케이션에 프로젝트에 필요한 모듈을 설치합니다.
+2. 생성한 애플리케이션에 프로젝트에 필요한 모듈을 설치하고, 서버에 업로드 할 사진을 저장하는 uploads 폴더를 생성합니다.
 
 ```
 npm install --save body-parser
@@ -45,34 +47,46 @@ npm install --save express-session
 npm install --save mysql
 npm install --save fs-extra
 npm install --save multer
+
+mkdir uploads
 ```
 
 3. 해당 저장소를 clone 합니다. vscode로 열어 sftp.json을 이용해 서버의 애플리케이션과 연결합니다.
 
-4. routes 폴더에 있는 파일들의 connection 정보를 본인의 MySQL 정보로 수정한 후 저장소의 내용을 서버에 업로드합니다.
+4. server 폴더에 db.js를 생성하고, MySQL에 connection 하기 위해 다음 형식으로 본인의 정보로 입력한 후 저장합니다.
+
+```
+const mysql = require("mysql");
+
+const connection = mysql.createConnection({
+  host: "localhost",
+  user: "유저 이름",
+  password: "비밀번호",
+  database: "project",
+  charset: "utf8"
+});
+
+module.exports = connection;
+```
 
 5. 설치 후 애플리케이션을 ```npm start```를 통해 실행하고, AWS에서 발급받은 **인스턴스 아이피:포트번호**로 접속합니다.
 
-## How To Use
+## Websites
 
-* [메인 화면]()
+* [프로젝트 기획](https://1000-peach.tistory.com/2)
 
-* [로그인]()
+* [프로젝트 개발 및 상세 소개](https://1000-peach.tistory.com/3)
 
-* [콘텐츠 등록]()
-
-* [검색]()
-
-* [소통]()
+* [프로젝트 모바일 버전 저장소](https://github.com/HyperTech99/My-Journal-Express-Mobile)
 
 ## Contributors
 
-* 1000peach [@1000peach](https://github.com/1000peach)<br>
-:email: sheissblack@gmail.com<br>
-:email: _970813@daum.net
+* [1000peach](https://github.com/1000peach)<br>
+gmail : sheissblack@gmail.com<br>
+email : _970813@daum.net
 
-* HyperTech99 [@HyperTech99](https://github.com/HyperTech99)<br>
-:email: smyun99@gmail.com<br>
+* [HyperTech99](https://github.com/HyperTech99)<br>
+gmail : smyun99@gmail.com<br>
 
-* IMNOOK [@IMNOOK](https://github.com/IMNOOK)<br>
-:email: leeminwok0405@gmail.com
+* [IMNOOK](https://github.com/IMNOOK)<br>
+gmail : leeminwok0405@gmail.com

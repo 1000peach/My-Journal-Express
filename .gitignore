@@ -126,4 +126,5 @@ bin/
 node_modules/
 .vscode
 package.json
+uploads/
 server/db.js
